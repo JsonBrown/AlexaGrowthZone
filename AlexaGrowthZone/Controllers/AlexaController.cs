@@ -11,7 +11,7 @@ namespace AlexaGrowthZone.Controllers
     public class AlexaController : ApiController
     {
         [Route("alexa/sample-session")]
-        [HttpPost]
+        [HttpPost, HttpGet]
         public HttpResponseMessage SampleSession()
         {
             var speechlet = new GrowthzoneSpeechlet();
