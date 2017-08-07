@@ -6,19 +6,89 @@ using System.Web;
 using AlexaSkillsKit.Authentication;
 using AlexaSkillsKit.Json;
 using AlexaSkillsKit.UI;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace AlexaGrowthZone.Business
 {
     public class GrowthzoneSpeechlet : Speechlet
     {
+        public string result;
+        public int ccid = ****;
+        public string ApiCall(string callURL)
+        {
+            var client = new HttpClient();
+            client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Add("X-ApiKey", "*******");
+
+            return client.GetStringAsync(callURL).Result;
+           
+        }
         public override SpeechletResponse OnIntent(IntentRequest intentRequest, Session session)
         {
-            return BuildSpeechletResponse("hello", true);
+            string intentName = intentRequest.Intent.Name;
+            Dictionary<string, AlexaSkillsKit.Slu.Slot> slots = intentRequest.Intent.Slots;
+
+            //WhatsMyNameIntent
+            if (intentName == "WhatsMyNameIntent")
+            {
+                return BuildSpeechletResponse("I don't know what your name is, can you tell me?", true);
+            }
+            //MyNameIsIntent
+            else if (intentName == "MyNameIsIntent")
+            {
+                AlexaSkillsKit.Slu.Slot name;
+                if (slots.TryGetValue("name", out name))
+                {
+                    return BuildSpeechletResponse("Hello " + name.Value, true);
+                }
+                else
+                {
+                    return BuildSpeechletResponse("I'm sorry, I didn't catch that.", true);
+                }
+            }
+            //ActiveMemberCount
+            else if (intentName == "ActiveMemberCount")
+            {
+                result = ApiCall("associations(ccid)/members");
+                var members = JsonConvert.DeserializeObject<List<ApiResult>>(result);
+                int activeMemberCount = members.Count;
+                
+                return BuildSpeechletResponse("Your active member count is " + activeMemberCount, true);
+            }
+            else if (intentName == "MyNextEvent")
+            {
+                DateTime localDate = DateTime.Now;
+                //associations({associationId})/events/attendees
+                //result = ApiCall("associations(ccid)/members({memberId})/events({eventId})");
+                result = ApiCall("associations(ccid)/events");
+                var events = JsonConvert.DeserializeObject<List<ApiResult>>(result);
+                var orderedEvents =
+                    from associationEvent in events
+                    orderby associationEvent.StartTime descending
+                    select associationEvent;
+                var nextEvent = orderedEvents.ElementAt(0).Name;
+
+                return BuildSpeechletResponse("Your next event is " + nextEvent, true);
+            }
+            else if (intentName == "CallMember")
+            {
+                //What if my friends don’t have an Echo, can I still call or message them from mine?
+                //Yes!Those friends would simply need to download the free Amazon Alexa App on their phone, available on iOS and Android, and enable Alexa calling and messaging.
+                result = ApiCall("associations(ccid)/members/details");
+                return BuildSpeechletResponse("I'm sorry, I didn't catch that.", true);
+            }
+            else
+            {
+                return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that. ", true);
+            }
         }
 
         public override SpeechletResponse OnLaunch(LaunchRequest launchRequest, Session session)
         {
-            return BuildSpeechletResponse("hello", false);
+            return BuildSpeechletResponse("Welcome to Chambermaster", false);
         }
 
         public override bool OnRequestValidation(SpeechletRequestValidationResult result, DateTime referenceTimeUtc, SpeechletRequestEnvelope requestEnvelope)
@@ -43,7 +113,13 @@ namespace AlexaGrowthZone.Business
             SpeechletResponse response = new SpeechletResponse();
             response.ShouldEndSession = shouldEndSession;
             response.OutputSpeech = speech;
+            
             return response;
         }
+    }
+    public class ApiResult
+    {
+        public string Name { get; set; }
+        public string StartTime { get; set; }
     }
 }
