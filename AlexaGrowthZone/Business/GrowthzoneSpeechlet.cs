@@ -21,7 +21,7 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "*******");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "*****");
 
             return client.GetStringAsync(callURL).Result;
            
@@ -52,32 +52,54 @@ namespace AlexaGrowthZone.Business
             //ActiveMemberCount
             else if (intentName == "ActiveMemberCount")
             {
-                result = ApiCall("associations(ccid)/members");
-                var members = JsonConvert.DeserializeObject<List<ApiResult>>(result);
-                int activeMemberCount = members.Count;
+                result = ApiCall("associations(" + ccid + ")/members");
+                var members = JsonConvert.DeserializeObject<List<ApiMemberResult>>(result);
+                List<ApiMemberResult> activeMembers = new List<ApiMemberResult>();
+                for (int i = 0; i < members.Count(); i++)
+                {
+                    if (members[i].DropDate == null)
+                    {
+                        activeMembers.Add(members[i]);
+                    }
+                }
+
+                int activeMemberCount = activeMembers.Count;
                 
                 return BuildSpeechletResponse("Your active member count is " + activeMemberCount, true);
             }
             else if (intentName == "MyNextEvent")
             {
-                DateTime localDate = DateTime.Now;
                 //associations({associationId})/events/attendees
-                //result = ApiCall("associations(ccid)/members({memberId})/events({eventId})");
-                result = ApiCall("associations(ccid)/events");
-                var events = JsonConvert.DeserializeObject<List<ApiResult>>(result);
-                var orderedEvents =
-                    from associationEvent in events
-                    orderby associationEvent.StartTime descending
-                    select associationEvent;
-                var nextEvent = orderedEvents.ElementAt(0).Name;
+                //associations(ccid)/members({memberId})/events({eventId})
 
-                return BuildSpeechletResponse("Your next event is " + nextEvent, true);
+                DateTime localDate = DateTime.Now;                
+                result = ApiCall("associations(" + ccid + ")/events");
+                var events = JsonConvert.DeserializeObject<List<ApiEventResult>>(result);
+                int difference;
+                List<ApiEventResult> futureEvents = new List<ApiEventResult>();
+                for (int i = 0; i < events.Count(); i++)
+                {
+                    difference = DateTime.Compare(localDate, Convert.ToDateTime(events[i].StartTime));
+                    if (difference > 0)
+                    {
+                        //Is in future
+                        futureEvents.Add(events[i]);
+                    }
+                }
+                var orderedEvents =
+                    from futureEvent in futureEvents
+                    orderby futureEvent.StartTime
+                    select futureEvent;
+                var nextEvent = orderedEvents.ElementAt(0);
+                //DateTime nextEventDate = Convert.ToDateTime(futureEvents[0].StartTime);
+                //return BuildSpeechletResponse("Your next event is " + nextEvent.Name + "and it starts at " + nextEvent.StartTime, true);
+                return BuildSpeechletResponse("Your next event is " + nextEvent.Name + " at " + nextEvent.StartTime, true);
             }
             else if (intentName == "CallMember")
             {
                 //What if my friends don’t have an Echo, can I still call or message them from mine?
                 //Yes!Those friends would simply need to download the free Amazon Alexa App on their phone, available on iOS and Android, and enable Alexa calling and messaging.
-                result = ApiCall("associations(ccid)/members/details");
+                result = ApiCall("associations(" + ccid + ")/members/details");
                 return BuildSpeechletResponse("I'm sorry, I didn't catch that.", true);
             }
             else
@@ -117,7 +139,12 @@ namespace AlexaGrowthZone.Business
             return response;
         }
     }
-    public class ApiResult
+    public class ApiMemberResult
+    {
+        public string Name { get; set; }
+        public string DropDate { get; set; }
+    }
+    public class ApiEventResult
     {
         public string Name { get; set; }
         public string StartTime { get; set; }
