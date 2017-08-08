@@ -80,7 +80,7 @@ namespace AlexaGrowthZone.Business
                 for (int i = 0; i < events.Count(); i++)
                 {
                     difference = DateTime.Compare(localDate, Convert.ToDateTime(events[i].StartTime));
-                    if (difference > 0)
+                    if (difference < 0)
                     {
                         //Is in future
                         futureEvents.Add(events[i]);
@@ -91,9 +91,14 @@ namespace AlexaGrowthZone.Business
                     orderby futureEvent.StartTime
                     select futureEvent;
                 var nextEvent = orderedEvents.ElementAt(0);
+                var dateTime = DateTime.Parse(nextEvent.StartTime);
+                var date = DateTime.Parse(nextEvent.StartTime).Date - dateTime.TimeOfDay;
+                var time = date.ToString("hh:mm");
+                var dateOnly = date.ToString("dd/MM/yyyy");
+                //var time = DateTime.Parse(nextEvent.StartTime).TimeOfDay;
                 //DateTime nextEventDate = Convert.ToDateTime(futureEvents[0].StartTime);
                 //return BuildSpeechletResponse("Your next event is " + nextEvent.Name + "and it starts at " + nextEvent.StartTime, true);
-                return BuildSpeechletResponse("Your next event is " + nextEvent.Name + " at " + nextEvent.StartTime, true);
+                return BuildSpeechletResponse("Your next event is " + nextEvent.Name + " on " + dateOnly + " at " + time, true);
             }
             else if (intentName == "CallMember")
             {
@@ -148,5 +153,10 @@ namespace AlexaGrowthZone.Business
     {
         public string Name { get; set; }
         public string StartTime { get; set; }
+        public string Id { get; set; }
+    }
+    public class ApiEventDetailsResult
+    {
+        public string AttendeeName { get; set; }
     }
 }
