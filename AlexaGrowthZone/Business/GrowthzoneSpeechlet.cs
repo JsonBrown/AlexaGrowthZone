@@ -21,7 +21,7 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "*****");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "******");
 
             return client.GetStringAsync(callURL).Result;
            
@@ -57,7 +57,7 @@ namespace AlexaGrowthZone.Business
                 List<ApiMemberResult> activeMembers = new List<ApiMemberResult>();
                 for (int i = 0; i < members.Count(); i++)
                 {
-                    if (members[i].DropDate == null)
+                    if (members[i].Status == 2)
                     {
                         activeMembers.Add(members[i]);
                     }
@@ -69,9 +69,6 @@ namespace AlexaGrowthZone.Business
             }
             else if (intentName == "MyNextEvent")
             {
-                //associations({associationId})/events/attendees
-                //associations(ccid)/members({memberId})/events({eventId})
-
                 DateTime localDate = DateTime.Now;                
                 result = ApiCall("associations(" + ccid + ")/events");
                 var events = JsonConvert.DeserializeObject<List<ApiEventResult>>(result);
@@ -80,9 +77,8 @@ namespace AlexaGrowthZone.Business
                 for (int i = 0; i < events.Count(); i++)
                 {
                     difference = DateTime.Compare(localDate, Convert.ToDateTime(events[i].StartTime));
-                    if (difference > 0)
+                    if (difference < 0)
                     {
-                        //Is in future
                         futureEvents.Add(events[i]);
                     }
                 }
@@ -91,9 +87,27 @@ namespace AlexaGrowthZone.Business
                     orderby futureEvent.StartTime
                     select futureEvent;
                 var nextEvent = orderedEvents.ElementAt(0);
-                //DateTime nextEventDate = Convert.ToDateTime(futureEvents[0].StartTime);
-                //return BuildSpeechletResponse("Your next event is " + nextEvent.Name + "and it starts at " + nextEvent.StartTime, true);
-                return BuildSpeechletResponse("Your next event is " + nextEvent.Name + " at " + nextEvent.StartTime, true);
+
+                string nextEventId = nextEvent.Id;
+                //result = ApiCall("associations(" + ccid + ")/events(" + nextEventId + ")/details");
+                result = ApiCall("associations(" + ccid + ")/events/attendees");
+                var eventsAttendees = JsonConvert.DeserializeObject<List<ApiEventsAttendeesResult>>(result);
+                int attendeeCount = 0;
+                for (int i = 0; i < eventsAttendees.Count(); i++)
+                {
+                    if (eventsAttendees[i].EventId.ToString() == nextEventId) //Will use nextEventId
+                    {
+                        attendeeCount = attendeeCount + 1;
+                    }
+                }
+
+                var nextEventStart = DateTime.Parse(nextEvent.StartTime).ToString();
+                var dateTime = DateTime.Parse(nextEvent.StartTime);
+                var date = DateTime.Parse(nextEvent.StartTime).Date - dateTime.TimeOfDay;
+                var time = date.ToString("hh:mm");
+                var dateOnly = date.ToString("dd/MM/yyyy");
+
+                return BuildSpeechletResponse("Your next event is " + nextEvent.Name + " and there are " + attendeeCount + " attendees registered.", true);
             }
             else if (intentName == "CallMember")
             {
@@ -104,7 +118,7 @@ namespace AlexaGrowthZone.Business
             }
             else
             {
-                return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that. ", true);
+                return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", true);
             }
         }
 
@@ -142,11 +156,16 @@ namespace AlexaGrowthZone.Business
     public class ApiMemberResult
     {
         public string Name { get; set; }
-        public string DropDate { get; set; }
+        public int Status { get; set; }
     }
     public class ApiEventResult
     {
         public string Name { get; set; }
         public string StartTime { get; set; }
+        public string Id { get; set; }
+    }
+    public class ApiEventsAttendeesResult
+    {
+        public int EventId { get; set; }
     }
 }
