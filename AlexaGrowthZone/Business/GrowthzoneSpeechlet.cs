@@ -21,36 +21,28 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "******");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "**************");
 
             return client.GetStringAsync(callURL).Result;
-           
         }
         public override SpeechletResponse OnIntent(IntentRequest intentRequest, Session session)
         {
             string intentName = intentRequest.Intent.Name;
             Dictionary<string, AlexaSkillsKit.Slu.Slot> slots = intentRequest.Intent.Slots;
 
-            //WhatsMyNameIntent
-            if (intentName == "WhatsMyNameIntent")
+            //Eventually should be done automatically by getting Id from request, that's not supported yet though
+            Dictionary<string, int> resolutions = new Dictionary<string, int>
             {
-                return BuildSpeechletResponse("I don't know what your name is, can you tell me?", true);
-            }
-            //MyNameIsIntent
-            else if (intentName == "MyNameIsIntent")
-            {
-                AlexaSkillsKit.Slu.Slot name;
-                if (slots.TryGetValue("name", out name))
-                {
-                    return BuildSpeechletResponse("Hello " + name.Value, true);
-                }
-                else
-                {
-                    return BuildSpeechletResponse("I'm sorry, I didn't catch that.", true);
-                }
-            }
+                {"how many", 1 },
+                {"what time", 2 },
+                {"at what time", 2 },
+                {"what is", 2 },
+                {"when", 2 },
+                {"what", 3 }
+            };
+
             //ActiveMemberCount
-            else if (intentName == "ActiveMemberCount")
+            if (intentName == "ActiveMemberCount")
             {
                 result = ApiCall("associations(" + ccid + ")/members");
                 var members = JsonConvert.DeserializeObject<List<ApiMemberResult>>(result);
@@ -69,7 +61,7 @@ namespace AlexaGrowthZone.Business
             }
             else if (intentName == "MyNextEvent")
             {
-                DateTime localDate = DateTime.Now;                
+                DateTime localDate = DateTime.Now;
                 result = ApiCall("associations(" + ccid + ")/events");
                 var events = JsonConvert.DeserializeObject<List<ApiEventResult>>(result);
                 int difference;
@@ -87,27 +79,55 @@ namespace AlexaGrowthZone.Business
                     orderby futureEvent.StartTime
                     select futureEvent;
                 var nextEvent = orderedEvents.ElementAt(0);
-
                 string nextEventId = nextEvent.Id;
-                //result = ApiCall("associations(" + ccid + ")/events(" + nextEventId + ")/details");
-                result = ApiCall("associations(" + ccid + ")/events/attendees");
-                var eventsAttendees = JsonConvert.DeserializeObject<List<ApiEventsAttendeesResult>>(result);
-                int attendeeCount = 0;
-                for (int i = 0; i < eventsAttendees.Count(); i++)
+
+                AlexaSkillsKit.Slu.Slot question;
+                if (slots.TryGetValue("question", out question))
                 {
-                    if (eventsAttendees[i].EventId.ToString() == nextEventId) //Will use nextEventId
+                    if (resolutions.ContainsKey(question.Value))
                     {
-                        attendeeCount = attendeeCount + 1;
+                        if (resolutions[question.Value] == 1)
+                        {
+                            result = ApiCall("associations(" + ccid + ")/events/attendees");
+                            var eventsAttendees = JsonConvert.DeserializeObject<List<ApiEventsAttendeesResult>>(result);
+                            int attendeeCount = 0;
+                            for (int i = 0; i < eventsAttendees.Count(); i++)
+                            {
+                                if (eventsAttendees[i].EventId.ToString() == nextEventId)
+                                {
+                                    attendeeCount = attendeeCount + 1;
+                                }
+                            }
+                            return BuildSpeechletResponse("There are " + attendeeCount + " attendees registered for " + nextEvent.Name, true);
+                        }
+                        else if (resolutions[question.Value] == 2)
+                        {
+                            var nextEventStart = DateTime.Parse(nextEvent.StartTime).ToString();
+                            var dateTime = DateTime.Parse(nextEvent.StartTime);
+                            var date = DateTime.Parse(nextEvent.StartTime).Date - dateTime.TimeOfDay;
+                            var time = date.ToString("hh:mm");
+                            var dateOnly = date.ToString("dd/MM/yyyy");
+
+                            return BuildSpeechletResponse(nextEvent.Name + " is on " + dateOnly + " at " + time, true);
+                        }
+                        else if (resolutions[question.Value] == 3)
+                        {
+                            return BuildSpeechletResponse("Your next event is " + nextEvent.Name, false);
+                        }
+                        else
+                        {
+                            return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
+                        }
+                    }
+                    else
+                    {
+                        return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
                     }
                 }
-
-                var nextEventStart = DateTime.Parse(nextEvent.StartTime).ToString();
-                var dateTime = DateTime.Parse(nextEvent.StartTime);
-                var date = DateTime.Parse(nextEvent.StartTime).Date - dateTime.TimeOfDay;
-                var time = date.ToString("hh:mm");
-                var dateOnly = date.ToString("dd/MM/yyyy");
-
-                return BuildSpeechletResponse("Your next event is " + nextEvent.Name + " and there are " + attendeeCount + " attendees registered.", true);
+                else
+                {
+                    return BuildSpeechletResponse("I'm sorry, I didn't catch that.", false);
+                }
             }
             else if (intentName == "CallMember")
             {
@@ -118,7 +138,7 @@ namespace AlexaGrowthZone.Business
             }
             else
             {
-                return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", true);
+                return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
             }
         }
 
