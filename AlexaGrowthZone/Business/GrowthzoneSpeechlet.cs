@@ -24,7 +24,7 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "**************");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "****");
 
             return client.GetStringAsync(callURL).Result;
         }
@@ -159,61 +159,77 @@ namespace AlexaGrowthZone.Business
                             current = memberList.ElementAt(i);
                         }
                     }
-                
-                if (slots.TryGetValue("desiredInfo", out desiredInfo))
-                {
-                    string comingIn = desiredInfo.Value.ToString();
 
-                    Dictionary<string, int> whatInfo = new Dictionary<string, int>
+                    if (slots.TryGetValue("desiredInfo", out desiredInfo))
+                    {
+                        string comingIn = desiredInfo.Value.ToString();
+
+                        Dictionary<string, int> whatInfo = new Dictionary<string, int>
                         {
                             {"address", 1 },
                             {"representatives", 2 },
                             {"reps", 2 },
                             {"rep", 2 },
+                            {"primary rep", 2 },
+                            {"primary representative", 2 },
                             {"representative", 2 },
-                            {"name", 3 },
-                            {"names", 3 }
+                            {"name", 2 },
+                            {"names", 2 },
                         };
 
-                    if (whatInfo.ContainsKey(comingIn))
-                    {
-                        if ((whatInfo[desiredInfo.Value] == 1) && (_member != null))
+                        if (whatInfo.ContainsKey(comingIn))
                         {
-                            StringBuilder strings = new StringBuilder();
-                            if(current.Line1 != null)
+                            if ((whatInfo[desiredInfo.Value] == 1) && (_member != null))
                             {
-                                strings.Append(current.Line1);
-                            }
-                            if(current.City != null)
-                            {
-                                strings.Append(current.City);
-                            }
-                            if(current.Region != null)
-                            {
-                                strings.Append(current.Region);
-                            }
-                            if(current.PostalCode != null)
-                            {
-                                strings.Append(current.PostalCode);
-                            }
-                            return BuildSpeechletResponse("The address of this member is " + strings, false);
+                                StringBuilder strings = new StringBuilder();
+                                if (current.Line1 != null)
+                                {
+                                    strings.Append(current.Line1);
+                                }
+                                if (current.City != null)
+                                {
+                                    strings.Append(current.City);
+                                }
+                                if (current.Region != null)
+                                {
+                                    strings.Append(current.Region);
+                                }
+                                if (current.PostalCode != null)
+                                {
+                                    strings.Append(current.PostalCode);
+                                }
+                                return BuildSpeechletResponse("The address of " + current.OrganizationName + " is " + strings, false);
 
+                            }
+                            else if ((whatInfo[desiredInfo.Value] == 2) && (_member != null))
+                            {
+                                StringBuilder repInfo = new StringBuilder();
+                                if (current.PrimaryRepFirstName != null)
+                                {
+                                    repInfo.Append(current.PrimaryRepFirstName);
+                                }
+                                if (current.PrimaryRepLastName != null)
+                                {
+                                    repInfo.Append(current.PrimaryRepLastName);
+                                }
+                                return BuildSpeechletResponse("The primary representative for " + current.OrganizationName + " is " + repInfo, false);
+                            }
+
+                            else
+                            {
+                                return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
+                            }
                         }
                         else
                         {
                             return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
                         }
+
                     }
                     else
                     {
-                        return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
+                        return BuildSpeechletResponse("Desired info had no value", false);
                     }
-
-                }
-                else
-                {
-                    return BuildSpeechletResponse("Desired info had no value", false);
-                }
 
                 }
                 else
@@ -221,7 +237,7 @@ namespace AlexaGrowthZone.Business
                     return BuildSpeechletResponse("There is no member with that name", false);
                 }
 
-            //return BuildSpeechletResponse("I'm sorry, I didn't catch that", false);
+                //return BuildSpeechletResponse("I'm sorry, I didn't catch that", false);
             }
 
             else
@@ -258,7 +274,7 @@ namespace AlexaGrowthZone.Business
             SpeechletResponse response = new SpeechletResponse();
             response.ShouldEndSession = shouldEndSession;
             response.OutputSpeech = speech;
-            
+
             return response;
         }
     }
