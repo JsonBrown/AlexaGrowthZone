@@ -18,13 +18,13 @@ namespace AlexaGrowthZone.Business
         public string result;
         public string _member;
         public MemberInfoApiResult current;
-        public int ccid = 1532;
+        public int ccid = ****;
         public string ApiCall(string callURL)
         {
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "a6f7d425-1a34-469f-9415-37b44edecb1f ");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "**************");
 
             return client.GetStringAsync(callURL).Result;
         }
@@ -45,7 +45,6 @@ namespace AlexaGrowthZone.Business
                 {"what", 3 }
             };
 
-            //ActiveMemberCount
             if (intentName == "ActiveMemberCount")
             {
                 result = ApiCall("associations(" + ccid + ")/members");
@@ -102,7 +101,7 @@ namespace AlexaGrowthZone.Business
                                     attendeeCount = attendeeCount + 1;
                                 }
                             }
-                            return BuildSpeechletResponse("There are " + attendeeCount + " attendees registered for " + nextEvent.Name, true);
+                            return BuildSpeechletResponse("There are " + attendeeCount + " attendees registered for " + nextEvent.Name, false);
                         }
                         else if (resolutions[question.Value] == 2)
                         {
@@ -112,7 +111,7 @@ namespace AlexaGrowthZone.Business
                             var time = date.ToString("hh:mm");
                             var dateOnly = date.ToString("dd/MM/yyyy");
 
-                            return BuildSpeechletResponse(nextEvent.Name + " is on " + dateOnly + " at " + time, true);
+                            return BuildSpeechletResponse(nextEvent.Name + " is on " + dateOnly + " at " + time, false);
                         }
                         else if (resolutions[question.Value] == 3)
                         {
