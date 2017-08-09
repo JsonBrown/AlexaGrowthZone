@@ -41,7 +41,6 @@ namespace AlexaGrowthZone.Business
                 {"what", 3 }
             };
 
-            //ActiveMemberCount
             if (intentName == "ActiveMemberCount")
             {
                 result = ApiCall("associations(" + ccid + ")/members");
@@ -57,7 +56,7 @@ namespace AlexaGrowthZone.Business
 
                 int activeMemberCount = activeMembers.Count;
                 
-                return BuildSpeechletResponse("Your active member count is " + activeMemberCount, true);
+                return BuildSpeechletResponse("Your active member count is " + activeMemberCount, false);
             }
             else if (intentName == "MyNextEvent")
             {
@@ -98,7 +97,7 @@ namespace AlexaGrowthZone.Business
                                     attendeeCount = attendeeCount + 1;
                                 }
                             }
-                            return BuildSpeechletResponse("There are " + attendeeCount + " attendees registered for " + nextEvent.Name, true);
+                            return BuildSpeechletResponse("There are " + attendeeCount + " attendees registered for " + nextEvent.Name, false);
                         }
                         else if (resolutions[question.Value] == 2)
                         {
@@ -108,7 +107,7 @@ namespace AlexaGrowthZone.Business
                             var time = date.ToString("hh:mm");
                             var dateOnly = date.ToString("dd/MM/yyyy");
 
-                            return BuildSpeechletResponse(nextEvent.Name + " is on " + dateOnly + " at " + time, true);
+                            return BuildSpeechletResponse(nextEvent.Name + " is on " + dateOnly + " at " + time, false);
                         }
                         else if (resolutions[question.Value] == 3)
                         {
