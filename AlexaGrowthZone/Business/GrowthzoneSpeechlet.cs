@@ -24,7 +24,7 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "***********************");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "*****************");
 
             return client.GetStringAsync(callURL).Result;
         }
@@ -36,6 +36,7 @@ namespace AlexaGrowthZone.Business
             //Eventually should be done automatically by getting Id from request, that's not supported yet though
             Dictionary<string, int> resolutions = new Dictionary<string, int>
             {
+                //These values are used to determine what information is being asked about for the myNextEvent intent
                 {"how many", 1 },
                 {"what time", 2 },
                 {"at what time", 2 },
@@ -59,7 +60,8 @@ namespace AlexaGrowthZone.Business
                 }
 
                 int activeMemberCount = activeMembers.Count;
-
+                /*The boolean at the end each BuildSpeechletResponse in the code prevents the skill from closing after each request
+                This prevents the user from having to open chambermaster after each request*/
                 return BuildSpeechletResponse("Your active member count is " + activeMemberCount, false);
             }
             else if (intentName == "MyNextEvent")
@@ -77,6 +79,7 @@ namespace AlexaGrowthZone.Business
                         futureEvents.Add(events[i]);
                     }
                 }
+                //Orders events in futureEvents list by date
                 var orderedEvents =
                     from futureEvent in futureEvents
                     orderby futureEvent.StartTime
@@ -159,6 +162,7 @@ namespace AlexaGrowthZone.Business
 
                             Dictionary<string, int> whatInfo = new Dictionary<string, int>
                         {
+                            //These values are used to determine information is being asked for
                             {"address", 1 },
                             {"representatives", 2 },
                             {"reps", 2 },
