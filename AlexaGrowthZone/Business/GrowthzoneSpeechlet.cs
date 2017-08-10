@@ -24,7 +24,7 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "************");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "***********************");
 
             return client.GetStringAsync(callURL).Result;
         }
@@ -60,7 +60,7 @@ namespace AlexaGrowthZone.Business
 
                 int activeMemberCount = activeMembers.Count;
 
-                return BuildSpeechletResponse("Your active member count is " + activeMemberCount, true);
+                return BuildSpeechletResponse("Your active member count is " + activeMemberCount, false);
             }
             else if (intentName == "MyNextEvent")
             {
@@ -151,12 +151,13 @@ namespace AlexaGrowthZone.Business
                             current = memberList.ElementAt(i);
                         }
                     }
-
-                    if (slots.TryGetValue("desiredInfo", out desiredInfo))
+                    if (current != null)
                     {
-                        string comingIn = desiredInfo.Value.ToString();
+                        if (slots.TryGetValue("desiredInfo", out desiredInfo))
+                        {
+                            string comingIn = desiredInfo.Value.ToString();
 
-                        Dictionary<string, int> whatInfo = new Dictionary<string, int>
+                            Dictionary<string, int> whatInfo = new Dictionary<string, int>
                         {
                             {"address", 1 },
                             {"representatives", 2 },
@@ -169,69 +170,85 @@ namespace AlexaGrowthZone.Business
                             {"names", 2 },
                         };
 
-                        if (whatInfo.ContainsKey(comingIn))
-                        {
-                            if ((whatInfo[desiredInfo.Value] == 1) && (_member != null))
+                            if (whatInfo.ContainsKey(comingIn))
                             {
-                                StringBuilder strings = new StringBuilder();
-                                if (current.Line1 != null)
+                                if ((whatInfo[desiredInfo.Value] == 1) && (_member != null))
                                 {
-                                    strings.Append(current.Line1 + ", ");
-                                }
-                                if (current.City != null)
-                                {
-                                    strings.Append(current.City + ", ");
-                                }
-                                if (current.Region != null)
-                                {
-                                    strings.Append(current.Region + ", ");
-                                }
-                                if (current.PostalCode != null)
-                                {
-                                    strings.Append(current.PostalCode);
-                                }
-                                return BuildSpeechletResponse("The address of " + current.OrganizationName + " is " + strings, false);
+                                    StringBuilder address = new StringBuilder();
+                                    if (current.Line1 != null)
+                                    {
+                                        //Commas and spaces added to make alexa's response more clear and easy to understand for the end user
+                                        address.Append(current.Line1 + ", ");
+                                    }
+                                    if (current.City != null)
+                                    {
+                                        address.Append(current.City + ", ");
+                                    }
+                                    if (current.Region != null)
+                                    {
+                                        address.Append(current.Region + ", ");
+                                    }
+                                    if (current.PostalCode != null)
+                                    {
+                                        address.Append(current.PostalCode);
+                                    }
+                                    if ((address == null) || (address.ToString() == ""))
+                                    {
+                                        return BuildSpeechletResponse("I'm sorry, " + current.OrganizationName + " doesn't have an address.", false);
+                                    }
+                                    else
+                                    {
+                                        return BuildSpeechletResponse("The address of " + current.OrganizationName + " is " + address, false);
+                                    }
 
-                            }
-                            else if ((whatInfo[desiredInfo.Value] == 2) && (_member != null))
-                            {
-                                StringBuilder repInfo = new StringBuilder();
-                                if (current.PrimaryRepFirstName != null)
-                                {
-                                    repInfo.Append(current.PrimaryRepFirstName + " ");
                                 }
-                                if (current.PrimaryRepLastName != null)
+                                else if ((whatInfo[desiredInfo.Value] == 2) && (_member != null))
                                 {
-                                    repInfo.Append(current.PrimaryRepLastName);
+                                    StringBuilder repInfo = new StringBuilder();
+                                    if (current.PrimaryRepFirstName != null)
+                                    {
+                                        repInfo.Append(current.PrimaryRepFirstName + " ");
+                                    }
+                                    if (current.PrimaryRepLastName != null)
+                                    {
+                                        repInfo.Append(current.PrimaryRepLastName);
+                                    }
+                                    if ((repInfo == null) || (repInfo.ToString() == ""))
+                                    {
+                                        return BuildSpeechletResponse("I'm sorry, " + current.OrganizationName + " doesn't have a primary representative.", false);
+                                    }
+                                    else
+                                    {
+                                        return BuildSpeechletResponse("The primary representative for " + current.OrganizationName + " is " + repInfo, false);
+                                    }
                                 }
-                                return BuildSpeechletResponse("The primary representative for " + current.OrganizationName + " is " + repInfo, false);
-                            }
 
+                                else
+                                {
+                                    return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
+                                }
+                            }
                             else
                             {
                                 return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
                             }
+
                         }
                         else
                         {
-                            return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
+                            return BuildSpeechletResponse("Desired info had no value.", false);
                         }
-
                     }
                     else
                     {
-                        return BuildSpeechletResponse("Desired info had no value", false);
+                        return BuildSpeechletResponse("There is no member with that name.", false);
                     }
-
                 }
                 else
                 {
-                    return BuildSpeechletResponse("There is no member with that name", false);
+                    return BuildSpeechletResponse("You have to tell me the name of the member you want information about.", false);
                 }
-
-                //return BuildSpeechletResponse("I'm sorry, I didn't catch that", false);
             }
-
             else
             {
                 return BuildSpeechletResponse("I'm sorry, I don't know how to respond to that.", false);
