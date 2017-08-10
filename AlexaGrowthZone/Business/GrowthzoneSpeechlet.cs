@@ -24,7 +24,7 @@ namespace AlexaGrowthZone.Business
             var client = new HttpClient();
             client.BaseAddress = new Uri("https://api.micronetonline.com/V1/");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Add("X-ApiKey", "****");
+            client.DefaultRequestHeaders.Add("X-ApiKey", "************");
 
             return client.GetStringAsync(callURL).Result;
         }
@@ -132,14 +132,6 @@ namespace AlexaGrowthZone.Business
                     return BuildSpeechletResponse("I'm sorry, I didn't catch that.", false);
                 }
             }
-            else if (intentName == "CallMember")
-            {
-                //What if my friends don’t have an Echo, can I still call or message them from mine?
-                //Yes!Those friends would simply need to download the free Amazon Alexa App on their phone, available on iOS and Android, and enable Alexa calling and messaging.
-                result = ApiCall("associations(" + ccid + ")/members/details");
-                return BuildSpeechletResponse("I'm sorry, I didn't catch that.", true);
-            }
-
             else if (intentName == "MemberInfo")
             {
                 AlexaSkillsKit.Slu.Slot member;
@@ -184,15 +176,15 @@ namespace AlexaGrowthZone.Business
                                 StringBuilder strings = new StringBuilder();
                                 if (current.Line1 != null)
                                 {
-                                    strings.Append(current.Line1);
+                                    strings.Append(current.Line1 + ", ");
                                 }
                                 if (current.City != null)
                                 {
-                                    strings.Append(current.City);
+                                    strings.Append(current.City + ", ");
                                 }
                                 if (current.Region != null)
                                 {
-                                    strings.Append(current.Region);
+                                    strings.Append(current.Region + ", ");
                                 }
                                 if (current.PostalCode != null)
                                 {
@@ -206,7 +198,7 @@ namespace AlexaGrowthZone.Business
                                 StringBuilder repInfo = new StringBuilder();
                                 if (current.PrimaryRepFirstName != null)
                                 {
-                                    repInfo.Append(current.PrimaryRepFirstName);
+                                    repInfo.Append(current.PrimaryRepFirstName + " ");
                                 }
                                 if (current.PrimaryRepLastName != null)
                                 {
